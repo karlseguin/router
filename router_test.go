@@ -1,14 +1,15 @@
 package router
 
 import (
-	"testing"
-	"net/http"
-	"net/http/httptest"
 	. "github.com/karlseguin/expect"
 	"github.com/karlseguin/expect/build"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 type RouterTests struct{}
+
 func Test_Router(t *testing.T) {
 	Expectify(new(RouterTests), t)
 }
@@ -26,8 +27,8 @@ func (r *RouterTests) NotFound() {
 func (r *RouterTests) NotFoundWithCustomHandler() {
 	router := New(Configure())
 	router.NotFound(func(out http.ResponseWriter, req *Request) {
-	  out.WriteHeader(4004)
-	  out.Write([]byte("not found"))
+		out.WriteHeader(4004)
+		out.Write([]byte("not found"))
 	})
 	res := httptest.NewRecorder()
 	router.ServeHTTP(res, build.Request().Request)
@@ -94,13 +95,13 @@ func (r *RouterTests) RouteWithComplexSetup() {
 func assertRouting(routePath, requestPath string, params ...string) {
 	router := New(Configure())
 	router.Get(routePath, func(out http.ResponseWriter, req *Request) {
-		Expect(len(req.Params)).To.Equal(len(params)/2)
+		Expect(len(req.Params)).To.Equal(len(params) / 2)
 		for i := 0; i < len(params); i += 2 {
 			key := params[i]
 			Expect(req.Params[key]).To.Equal(params[i+1])
 		}
-	  out.WriteHeader(200)
-	  out.Write([]byte(routePath))
+		out.WriteHeader(200)
+		out.Write([]byte(routePath))
 	})
 	assertRouter(router, requestPath, routePath, params...)
 }
@@ -116,7 +117,7 @@ func assertRouter(router *Router, requestPath string, body string, params ...str
 func assertNotFound(routePath, requestPath string) {
 	router := New(Configure())
 	router.Get(routePath, func(out http.ResponseWriter, req *Request) {
-	  out.WriteHeader(200)
+		out.WriteHeader(200)
 	})
 	res := httptest.NewRecorder()
 	router.ServeHTTP(res, build.Request().Path(requestPath).Request)
@@ -125,7 +126,7 @@ func assertNotFound(routePath, requestPath string) {
 
 func testHandler(body string) func(out http.ResponseWriter, req *Request) {
 	return func(out http.ResponseWriter, req *Request) {
-	  out.WriteHeader(200)
-	  out.Write([]byte(body))
+		out.WriteHeader(200)
+		out.Write([]byte(body))
 	}
 }

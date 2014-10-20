@@ -1,13 +1,13 @@
 package router
 
 type Configuration struct {
-	paramPoolSize int
+	paramPoolSize  int
 	paramPoolCount int
 }
 
 func Configure() *Configuration {
 	return &Configuration{
-		paramPoolSize: 32,
+		paramPoolSize:  32,
 		paramPoolCount: 32,
 	}
 }

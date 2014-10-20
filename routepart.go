@@ -1,9 +1,9 @@
 package router
 
 type RoutePart struct {
-	params []string
+	params  []string
 	handler Handler
-	parts map[string]*RoutePart
+	parts   map[string]*RoutePart
 }
 
 func newRoutePart() *RoutePart {

@@ -5,6 +5,6 @@ import (
 )
 
 type Request struct {
-  *http.Request
-  Params map[string]string
+	*http.Request
+	Params map[string]string
 }

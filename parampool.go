@@ -5,15 +5,15 @@ import (
 )
 
 type ParamPool struct {
-	misses   int64
-	size int
-	list     chan *Params
+	misses int64
+	size   int
+	list   chan *Params
 }
 
 func NewParamPool(size, count int) *ParamPool {
 	pool := &ParamPool{
 		size: size,
-		list:     make(chan *Params, count),
+		list: make(chan *Params, count),
 	}
 	for i := 0; i < count; i++ {
 		pool.list <- NewParams(pool, size)
@@ -37,12 +37,12 @@ func (p *ParamPool) Checkout() *Params {
 
 type Params struct {
 	values []string
-	pool *ParamPool
+	pool   *ParamPool
 }
 
 func NewParams(pool *ParamPool, size int) *Params {
 	return &Params{
-		pool: pool,
+		pool:   pool,
 		values: make([]string, 0, size),
 	}
 }
