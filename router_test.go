@@ -65,8 +65,8 @@ func (r *RouterTests) RouteWithParameter() {
 
 func (r *RouterTests) RouteWithParameterAndNesting() {
 	assertRouting("/users/:id/likes", "/users/3233/likes", "id", "3233")
-	// assertNotFound("/users/:id/likes", "/users/3233")
-	// assertNotFound("/users/:id/likes", "/users/3233/like")
+	assertNotFound("/users/:id/likes", "/users/3233")
+	assertNotFound("/users/:id/likes", "/users/3233/like")
 }
 
 func (r *RouterTests) RouteWithMultipleParameter() {
@@ -90,6 +90,24 @@ func (r *RouterTests) RouteWithComplexSetup() {
 	assertRouter(router, "/users/944", "users-id", "id", "944")
 	assertRouter(router, "/users/434/likes", "user-likes", "userId", "434")
 	assertRouter(router, "/users/aaz/likes/4910a8", "user-likes-id", "userId", "aaz", "id", "4910a8")
+}
+
+func Benchmark_Router(b *testing.B) {
+	router := New(Configure())
+	router.Get("/users", testHandler("get-users"))
+	router.Post("/users/:id", testHandler("create-user"))
+	router.Get("/users/:userId/likes/:id", testHandler("get-favoriate"))
+	requests := []*http.Request{
+		build.Request().Path("/404").Request,
+		build.Request().Path("/users").Request,
+		build.Request().Path("/users/499/likes/001a").Request,
+		build.Request().Method("Post").Path("/users/943").Request,
+	}
+	b.ResetTimer()
+	res := httptest.NewRecorder()
+	for i := 0; i < b.N; i++ {
+		router.ServeHTTP(res, requests[i % len(requests)])
+	}
 }
 
 func assertRouting(routePath, requestPath string, params ...string) {
