@@ -1,9 +1,9 @@
 package router
 
-var emptyParam = &Params{lookup: []string{}}
+var emptyParam = &Params{lookup: []struct{key, value string}{}}
 
 type Params struct {
-	lookup []string
+	lookup []struct{key, value string}
 	length int
 	pool   *ParamPool
 }
@@ -11,7 +11,7 @@ type Params struct {
 func NewParams(pool *ParamPool, size int) *Params {
 	return &Params{
 		pool:   pool,
-		lookup: make([]string, size),
+		lookup: make([]struct{key, value string}, size),
 	}
 }
 
@@ -20,19 +20,18 @@ func (p *Params) Len() int {
 }
 
 func (p *Params) AddValue(value string) {
-	p.lookup[p.length*2+1] = value
+	p.lookup[p.length] = struct{key, value string}{value: value}
 	p.length += 1
 }
 
-func (p *Params) AddKey(key string, index int) {
-	p.lookup[index*2] = key
+func (p *Params) SetKey(key string, index int) {
+	p.lookup[index].key = key
 }
 
 func (p *Params) Get(key string) string {
 	for i, l := 0, p.length; i < l; i++ {
-		position := i * 2
-		if p.lookup[position] == key {
-			return p.lookup[position+1]
+		if p.lookup[i].key == key {
+			return p.lookup[i].value
 		}
 	}
 	return ""

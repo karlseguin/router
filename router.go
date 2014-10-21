@@ -114,7 +114,7 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 	}
 	if l := params.Len(); l > 0 {
 		for i := 0; i < l; i++ {
-			params.AddKey(rp.params[i], i)
+			params.SetKey(rp.params[i], i)
 		}
 		req.params = params
 	}
