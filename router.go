@@ -23,6 +23,7 @@ func New(config *Configuration) *Router {
 			"DELETE":  newRoutePart(),
 			"PURGE":   newRoutePart(),
 			"PATCH":   newRoutePart(),
+			"HEAD":    newRoutePart(),
 			"OPTIONS": newRoutePart(),
 		},
 	}
@@ -32,6 +33,12 @@ func New(config *Configuration) *Router {
 
 func (r *Router) NotFound(handler Handler) {
 	r.notFound = handler
+}
+
+func (r *Router) All(path string, handler Handler) {
+	for _, rp := range r.routes {
+		r.add(rp, path, handler)
+	}
 }
 
 func (r *Router) Get(path string, handler Handler) {

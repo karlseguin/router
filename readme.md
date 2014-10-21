@@ -38,6 +38,31 @@ func userShow(out http.ResponseWriter, req *router.Request) {
 
 Notice that `userList` and `userShow` take a `*router.Request` and **not** a `*http.Request`. This is to expose the `Params` method.
 
+## Methods
+
+All methods used to setup a route expect two parameters:
+
+* path string
+* handler func(res http.ResponseWriter, req *router.Request)
+
+The methods are:
+
+* Get
+* Post
+* Put
+* Delete
+* Patch
+* Purge
+* Head
+* Options
+
+The convenience method `All` sets up a route for all methods. This can be overwritten by setting a specific handler **before** calling `All`:
+
+```go
+router.Get("/power", testHandler("get-9000"))
+router.All("/power", testHandler("9000"))
+```
+
 ## Prefix matches
 
 A route that ends with a '*' will do a prefix match on the incoming URL:

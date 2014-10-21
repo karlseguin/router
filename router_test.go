@@ -40,6 +40,33 @@ func (r *RouterTests) DefaultRoute() {
 	assertRouting("/", "/")
 }
 
+func (r *RouterTests) RouterToAll() {
+	router := New(Configure())
+	router.All("/power", testHandler("9000"))
+	assertRouter(router, "GET", "/power", "9000")
+	assertRouter(router, "POST", "/power", "9000")
+	assertRouter(router, "PUT", "/power", "9000")
+	assertRouter(router, "DELETE", "/power", "9000")
+	assertRouter(router, "PATCH", "/power", "9000")
+	assertRouter(router, "PURGE", "/power", "9000")
+	assertRouter(router, "HEAD", "/power", "9000")
+	assertRouter(router, "OPTIONS", "/power", "9000")
+}
+
+func (r *RouterTests) RouterToAllOverwrite() {
+	router := New(Configure())
+	router.Get("/power", testHandler("get-9000"))
+	router.All("/power", testHandler("9000"))
+	assertRouter(router, "GET", "/power", "get-9000")
+	assertRouter(router, "POST", "/power", "9000")
+	assertRouter(router, "PUT", "/power", "9000")
+	assertRouter(router, "DELETE", "/power", "9000")
+	assertRouter(router, "PATCH", "/power", "9000")
+	assertRouter(router, "PURGE", "/power", "9000")
+	assertRouter(router, "HEAD", "/power", "9000")
+	assertRouter(router, "OPTIONS", "/power", "9000")
+}
+
 func (r *RouterTests) SimpleRoute() {
 	assertRouting("/users", "/users")
 	assertRouting("/users", "/users/")
