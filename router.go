@@ -88,6 +88,7 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 	params := r.paramPool.Checkout()
 	defer params.Release()
 
+	var handler Handler
 	for {
 		original := rp
 		index := strings.Index(path, "/")
@@ -95,20 +96,33 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 			index = len(path)
 		}
 		part := path[:index]
-
 		if rp, ok = rp.parts[part]; ok == false {
+			if original.prefixes != nil {
+				lower := strings.ToLower(part)
+				for _, prefix := range original.prefixes {
+					if len(prefix.value) == 0 || strings.HasPrefix(lower, prefix.value) {
+						rp = original
+						handler = prefix.handler
+						break
+					}
+				}
+				if handler != nil {
+					break
+				}
+			}
 			if rp, ok = original.parts[":"]; ok == false {
 				break
 			}
 			params.AddValue(part)
 		}
 
-		if len(path) == index {
+		if rp == nil || len(path) == index {
 			break
 		}
 		path = path[index+1:]
 	}
-	if rp == nil || rp.handler == nil {
+
+	if rp == nil || (rp.handler == nil && handler == nil) {
 		r.notFound(out, req)
 		return
 	}
@@ -118,7 +132,11 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 		}
 		req.params = params
 	}
-	rp.handler(out, req)
+	if handler == nil {
+		handler = rp.handler
+	}
+	handler(out, req)
+
 }
 
 func (r *Router) add(rp *RoutePart, path string, handler Handler) {
@@ -134,9 +152,17 @@ func (r *Router) add(rp *RoutePart, path string, handler Handler) {
 		path = path[:(len(path) - 1)]
 	}
 
-	params := make([]string, 0, 2)
+	params := make([]string, 0, 1)
 	parts := strings.Split(path, "/")
 	for _, part := range parts {
+		if part[len(part)-1] == '*' {
+			if rp.prefixes == nil {
+				rp.prefixes = make([]*Prefix, 0, 1)
+			}
+			prefix := &Prefix{value: strings.ToLower(part[:len(part)-1]), handler: handler}
+			rp.prefixes = appendPrefix(rp.prefixes, prefix)
+			break
+		}
 		if part[0] == ':' {
 			params = appendOne(params, part[1:])
 			part = ":"
@@ -151,7 +177,9 @@ func (r *Router) add(rp *RoutePart, path string, handler Handler) {
 	if len(params) > 0 {
 		rp.params = params
 	}
-	rp.handler = handler
+	if rp.handler == nil {
+		rp.handler = handler
+	}
 }
 
 func (r Router) Routes() map[string]*RoutePart {
@@ -166,6 +194,15 @@ func appendOne(arr []string, value string) []string {
 	target := arr
 	if len(arr) == cap(arr) {
 		target = make([]string, len(arr)+1)
+		copy(target, arr)
+	}
+	return append(target, value)
+}
+
+func appendPrefix(arr []*Prefix, value *Prefix) []*Prefix {
+	target := arr
+	if len(arr) == cap(arr) {
+		target = make([]*Prefix, len(arr)+1)
 		copy(target, arr)
 	}
 	return append(target, value)

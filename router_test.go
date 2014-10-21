@@ -45,36 +45,36 @@ func (r *RouterTests) SimpleRoute() {
 	assertRouting("/users", "/users/")
 	assertRouting("/users/", "/users")
 	assertRouting("/users/", "/users/")
-	assertNotFound("/users", "/user")
-	assertNotFound("/users", "/users/323")
+	assertNotFound("/users", "GET", "/user")
+	assertNotFound("/users", "GET", "/users/323")
 }
 
 func (r *RouterTests) SimpleNestedRoute() {
 	assertRouting("/users/all", "/users/all")
-	assertNotFound("/users/all", "/users")
-	assertNotFound("/users/all", "/users/")
-	assertNotFound("/users/all", "/users/323/likes")
+	assertNotFound("/users/all", "GET", "/users")
+	assertNotFound("/users/all", "GET", "/users/")
+	assertNotFound("/users/all", "GET", "/users/323/likes")
 }
 
 func (r *RouterTests) RouteWithParameter() {
 	assertRouting("/users/:id", "/users/3233", "id", "3233")
 	assertRouting("/users/:other_longer", "/users/ab & cd", "other_longer", "ab & cd")
-	assertNotFound("/users/:id", "/users")
-	assertNotFound("/users/:id", "/users/")
+	assertNotFound("/users/:id", "GET", "/users")
+	assertNotFound("/users/:id", "GET", "/users/")
 }
 
 func (r *RouterTests) RouteWithParameterAndNesting() {
 	assertRouting("/users/:id/likes", "/users/3233/likes", "id", "3233")
-	assertNotFound("/users/:id/likes", "/users/3233")
-	assertNotFound("/users/:id/likes", "/users/3233/like")
+	assertNotFound("/users/:id/likes", "GET", "/users/3233")
+	assertNotFound("/users/:id/likes", "GET", "/users/3233/like")
 }
 
 func (r *RouterTests) RouteWithMultipleParameter() {
 	router := New(Configure())
 	router.Get("/users/:id", testHandler("route-1"))
 	router.Get("/users/:userId/likes", testHandler("route-2"))
-	assertRouter(router, "/users/32", "route-1", "id", "32")
-	assertRouter(router, "/users/32/likes", "route-2", "userId", "32")
+	assertRouter(router, "GET", "/users/32", "route-1", "id", "32")
+	assertRouter(router, "GET", "/users/32/likes", "route-2", "userId", "32")
 }
 
 func (r *RouterTests) RouteWithComplexSetup() {
@@ -85,11 +85,44 @@ func (r *RouterTests) RouteWithComplexSetup() {
 	router.Get("/users/:userId/likes", testHandler("user-likes"))
 	router.Get("/users/:userId/likes/:id", testHandler("user-likes-id"))
 
-	assertRouter(router, "/", "root")
-	assertRouter(router, "/users/", "users")
-	assertRouter(router, "/users/944", "users-id", "id", "944")
-	assertRouter(router, "/users/434/likes", "user-likes", "userId", "434")
-	assertRouter(router, "/users/aaz/likes/4910a8", "user-likes-id", "userId", "aaz", "id", "4910a8")
+	assertRouter(router, "GET", "/", "root")
+	assertRouter(router, "GET", "/users/", "users")
+	assertRouter(router, "GET", "/users/944", "users-id", "id", "944")
+	assertRouter(router, "GET", "/users/434/likes", "user-likes", "userId", "434")
+	assertRouter(router, "GET", "/users/aaz/likes/4910a8", "user-likes-id", "userId", "aaz", "id", "4910a8")
+}
+
+func (r *RouterTests) RoutingWithPrefix() {
+	router := New(Configure())
+	router.Put("/", testHandler("root"))
+	router.Put("/admin/*", testHandler("admin-glob-1"))
+	router.Put("/admin/settings/*", testHandler("admin-glob-2"))
+	router.Put("/users/:id", testHandler("user-id"))
+	router.Put("/users/:id/favorite*", testHandler("user-favorites"))
+	router.Put("/users/AB*", testHandler("user-glob-1"))
+
+	assertRouter(router, "PUT", "/", "root")
+
+	assertRouter(router, "PUT", "/admin", "admin-glob-1")
+	assertRouter(router, "PUT", "/admin/a", "admin-glob-1")
+	assertRouter(router, "PUT", "/admin/about", "admin-glob-1")
+	assertRouter(router, "PUT", "/admin/about/123", "admin-glob-1")
+
+	assertRouter(router, "PUT", "/admin/settings", "admin-glob-2")
+	assertRouter(router, "PUT", "/admin/settings/", "admin-glob-2")
+	assertRouter(router, "PUT", "/admin/settings/aab", "admin-glob-2")
+
+	assertRouter(router, "PUT", "/users/1", "user-id")
+	assertRouter(router, "PUT", "/users/b/favorites", "user-favorites")
+	assertRouter(router, "PUT", "/users/b/favorites/323", "user-favorites")
+
+	assertRouter(router, "PUT", "/users/ab", "user-glob-1")
+	assertRouter(router, "PUT", "/users/aBaa", "user-glob-1")
+	assertRouter(router, "PUT", "/users/ab444/asds", "user-glob-1")
+
+	assertRouterNotFound(router, "PUT", "/user")
+	assertRouterNotFound(router, "PUT", "/admi")
+	assertRouterNotFound(router, "PUT", "/users/233/other")
 }
 
 func Benchmark_Router(b *testing.B) {
@@ -121,24 +154,31 @@ func assertRouting(routePath, requestPath string, params ...string) {
 		out.WriteHeader(200)
 		out.Write([]byte(routePath))
 	})
-	assertRouter(router, requestPath, routePath, params...)
+	assertRouter(router, "GET", requestPath, routePath, params...)
 }
 
-func assertRouter(router *Router, requestPath string, body string, params ...string) {
+
+func assertRouter(router *Router, method string, requestPath string, body string, params ...string) {
 	res := httptest.NewRecorder()
-	req := build.Request().Path(requestPath).Request
+	req := build.Request().Path(requestPath).Method(method).Request
 	router.ServeHTTP(res, req)
 	Expect(res.Code).To.Equal(200)
 	Expect(string(res.Body.Bytes())).To.Equal(body)
 }
 
-func assertNotFound(routePath, requestPath string) {
+func assertNotFound(routePath, method string, requestPath string) {
 	router := New(Configure())
 	router.Get(routePath, func(out http.ResponseWriter, req *Request) {
 		out.WriteHeader(200)
 	})
 	res := httptest.NewRecorder()
-	router.ServeHTTP(res, build.Request().Path(requestPath).Request)
+	router.ServeHTTP(res, build.Request().Method(method).Path(requestPath).Request)
+	Expect(res.Code).To.Equal(404)
+}
+
+func assertRouterNotFound(router *Router, method string, requestPath string) {
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, build.Request().Method(method).Path(requestPath).Request)
 	Expect(res.Code).To.Equal(404)
 }
 
