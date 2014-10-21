@@ -40,7 +40,7 @@ Notice that `userList` and `userShow` take a `*router.Request` and **not** a `*h
 
 ## 404
 
-Specify a handler to handle not found requests:
+Specify a handler for not found requests:
 
 ```go
 router.NotFound(notFound)
@@ -51,7 +51,7 @@ func notFound(out http.ResponseWriter, req *router.Request) {
 }
 ```
 
-A basic not found handler is used by default (simply outputs a status code of 404 with no body).
+A basic not found handler is used by default.
 
 # Coming Soon
 * Constraints on parameters

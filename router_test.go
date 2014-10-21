@@ -106,17 +106,17 @@ func Benchmark_Router(b *testing.B) {
 	b.ResetTimer()
 	res := httptest.NewRecorder()
 	for i := 0; i < b.N; i++ {
-		router.ServeHTTP(res, requests[i % len(requests)])
+		router.ServeHTTP(res, requests[i%len(requests)])
 	}
 }
 
 func assertRouting(routePath, requestPath string, params ...string) {
 	router := New(Configure())
 	router.Get(routePath, func(out http.ResponseWriter, req *Request) {
-		Expect(len(req.Params)).To.Equal(len(params) / 2)
+		Expect(req.params.Len()).To.Equal(len(params) / 2)
 		for i := 0; i < len(params); i += 2 {
 			key := params[i]
-			Expect(req.Params[key]).To.Equal(params[i+1])
+			Expect(req.Param(key)).To.Equal(params[i+1])
 		}
 		out.WriteHeader(200)
 		out.Write([]byte(routePath))

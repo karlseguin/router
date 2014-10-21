@@ -34,22 +34,3 @@ func (p *ParamPool) Checkout() *Params {
 		return NewParams(nil, p.size)
 	}
 }
-
-type Params struct {
-	values []string
-	pool   *ParamPool
-}
-
-func NewParams(pool *ParamPool, size int) *Params {
-	return &Params{
-		pool:   pool,
-		values: make([]string, 0, size),
-	}
-}
-
-func (p *Params) Release() {
-	if p.pool != nil {
-		p.values = p.values[0:0]
-		p.pool.list <- p
-	}
-}

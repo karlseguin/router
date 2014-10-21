@@ -63,7 +63,7 @@ func (r *Router) Options(path string, handler Handler) {
 }
 
 func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
-	req := &Request{Request: httpReq}
+	req := &Request{Request: httpReq, params: emptyParam}
 	rp, ok := r.routes[req.Method]
 	if ok == false {
 		r.notFound(out, req)
@@ -86,6 +86,7 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 		path = path[:(len(path) - 1)]
 	}
 	params := r.paramPool.Checkout()
+	defer params.Release()
 
 	for {
 		original := rp
@@ -99,7 +100,7 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 			if rp, ok = original.parts[":"]; ok == false {
 				break
 			}
-			params.values = append(params.values, part)
+			params.AddValue(part)
 		}
 
 		if len(path) == index {
@@ -108,19 +109,15 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 		path = path[index+1:]
 	}
 	if rp == nil || rp.handler == nil {
-		params.Release()
 		r.notFound(out, req)
 		return
 	}
-	l := len(params.values)
-	if l > 0 {
-		m := make(map[string]string, l)
+	if l := params.Len(); l > 0 {
 		for i := 0; i < l; i++ {
-			m[rp.params[i]] = params.values[i]
+			params.AddKey(rp.params[i], i)
 		}
-		req.Params = m
+		req.params = params
 	}
-	params.Release()
 	rp.handler(out, req)
 }
 

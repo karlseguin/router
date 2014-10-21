@@ -6,5 +6,9 @@ import (
 
 type Request struct {
 	*http.Request
-	Params map[string]string
+	params *Params
+}
+
+func (r *Request) Param(key string) string {
+	return r.params.Get(key)
 }
