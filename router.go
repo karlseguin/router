@@ -7,10 +7,17 @@ import (
 	"strings"
 )
 
+type Action struct {
+	Name string
+	Handler Handler
+}
+
+var AllMethods = []string{"GET", "POST", "PUT", "DELETE", "PURGE", "PATCH", "OPTIONS", "HEAD" }
+
 type Handler func(out http.ResponseWriter, req *Request)
 
 type Router struct {
-	notFound  Handler
+	notFound  *Action
 	routes    map[string]*RoutePart
 	paramPool *params.Pool
 	valuePool *scratch.StringsPool
@@ -18,17 +25,8 @@ type Router struct {
 
 func New(config *Configuration) *Router {
 	router := &Router{
-		notFound: notFoundHandler,
-		routes: map[string]*RoutePart{
-			"GET":     newRoutePart(),
-			"POST":    newRoutePart(),
-			"PUT":     newRoutePart(),
-			"DELETE":  newRoutePart(),
-			"PURGE":   newRoutePart(),
-			"PATCH":   newRoutePart(),
-			"HEAD":    newRoutePart(),
-			"OPTIONS": newRoutePart(),
-		},
+		routes: make(map[string]*RoutePart),
+		notFound: &Action{"", notFoundHandler},
 	}
 	router.paramPool = params.NewPool(config.paramPoolSize, config.paramPoolCount)
 	router.valuePool = scratch.NewStrings(config.paramPoolSize, config.paramPoolCount)
@@ -36,66 +34,92 @@ func New(config *Configuration) *Router {
 }
 
 func (r *Router) NotFound(handler Handler) {
-	r.notFound = handler
+	r.notFound = &Action{"", handler}
+}
+
+func (r *Router) Add(method, path string, handler Handler) {
+	r.AddNamed(method + ":" + path, method, path, handler)
+}
+
+func (r *Router) AddNamed(name, method, path string, handler Handler) {
+	if method == "ALL" {
+		for _, m := range AllMethods {
+			r.AddNamed(name, m, path, handler)
+		}
+		return
+	}
+	rp, exists := r.routes[method]
+	if exists == false {
+		rp = newRoutePart()
+		r.routes[method] = rp
+	}
+	r.add(rp, path, &Action{name, handler})
 }
 
 func (r *Router) All(path string, handler Handler) {
-	for _, rp := range r.routes {
-		r.add(rp, path, handler)
+	for _, method := range AllMethods {
+		r.Add(method, path, handler)
+	}
+}
+
+func (r *Router) AllNamed(name, path string, handler Handler) {
+	for _, method := range AllMethods {
+		r.AddNamed(name, method, path, handler)
 	}
 }
 
 func (r *Router) Get(path string, handler Handler) {
-	r.add(r.routes["GET"], path, handler)
+	r.Add("GET", path, handler)
 }
 
 func (r *Router) Post(path string, handler Handler) {
-	r.add(r.routes["POST"], path, handler)
+	r.Add("POST", path, handler)
 }
 
 func (r *Router) Put(path string, handler Handler) {
-	r.add(r.routes["PUT"], path, handler)
+	r.Add("PUT", path, handler)
 }
 
 func (r *Router) Delete(path string, handler Handler) {
-	r.add(r.routes["DELETE"], path, handler)
+	r.Add("DELETE", path, handler)
 }
 
 func (r *Router) Purge(path string, handler Handler) {
-	r.add(r.routes["PURGE"], path, handler)
+	r.Add("PURGE", path, handler)
 }
 
 func (r *Router) Patch(path string, handler Handler) {
-	r.add(r.routes["PATCH"], path, handler)
+	r.Add("PATCH", path, handler)
 }
 
 func (r *Router) Options(path string, handler Handler) {
-	r.add(r.routes["OPTIONS"], path, handler)
+	r.Add("OPTIONS", path, handler)
 }
 
 func (r *Router) ServeHTTP(out http.ResponseWriter, hr *http.Request) {
-	params, handler, _ := r.Lookup(hr)
+	params, action := r.Lookup(hr)
 	defer params.Release()
 	req := &Request{Request: hr, params: params}
-	if handler == nil {
-		handler = r.notFound
+	if action == nil || action.Handler == nil {
+		r.notFound.Handler(out, req)
+		return
 	}
-	handler(out, req)
+	action.Handler(out, req)
 }
 
-func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) {
+func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 	rp, ok := r.routes[req.Method]
 	var params params.Params = params.Empty
 	if ok == false {
-		return params, nil, nil
+		return params, nil
 	}
 	path := req.URL.Path
 	if path == "" || path == "/" {
-		handler := rp.handler
-		if handler == nil {
-			handler = r.notFound
+		action := rp.action
+		if action == nil {
+			action = r.notFound
 		}
-		return params, handler, rp
+		return params, action
 	}
 
 	if path[0] == '/' {
@@ -108,7 +132,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) 
 	values := r.valuePool.Checkout()
 	defer values.Release()
 
-	var handler Handler
+	var action *Action
 	for {
 		original := rp
 		index := strings.Index(path, "/")
@@ -122,11 +146,11 @@ func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) 
 				for _, prefix := range original.prefixes {
 					if len(prefix.value) == 0 || strings.HasPrefix(lower, prefix.value) {
 						rp = original
-						handler = prefix.handler
+						action = prefix.action
 						break
 					}
 				}
-				if handler != nil {
+				if action != nil {
 					break
 				}
 			}
@@ -142,8 +166,8 @@ func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) 
 		path = path[index+1:]
 	}
 
-	if rp == nil || (rp.handler == nil && handler == nil) {
-		return params, nil, nil
+	if rp == nil || (rp.action == nil && action == nil) {
+		return params, nil
 	}
 
 	if l := values.Len(); l > 0 {
@@ -152,15 +176,15 @@ func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) 
 			params.Set(rp.params[i], value)
 		}
 	}
-	if handler == nil {
-		handler = rp.handler
+	if action == nil {
+		action = rp.action
 	}
-	return params, handler, rp
+	return params, action
 }
 
-func (r *Router) add(rp *RoutePart, path string, handler Handler) {
+func (r *Router) add(rp *RoutePart, path string, action *Action) {
 	if path == "" || path == "/" {
-		rp.handler = handler
+		rp.action = action
 		return
 	}
 
@@ -178,7 +202,7 @@ func (r *Router) add(rp *RoutePart, path string, handler Handler) {
 			if rp.prefixes == nil {
 				rp.prefixes = make([]*Prefix, 0, 1)
 			}
-			prefix := &Prefix{value: strings.ToLower(part[:len(part)-1]), handler: handler}
+			prefix := &Prefix{value: strings.ToLower(part[:len(part)-1]), action: action}
 			rp.prefixes = appendPrefix(rp.prefixes, prefix)
 			break
 		}
@@ -196,8 +220,8 @@ func (r *Router) add(rp *RoutePart, path string, handler Handler) {
 	if len(params) > 0 {
 		rp.params = params
 	}
-	if rp.handler == nil {
-		rp.handler = handler
+	if rp.action == nil {
+		rp.action = action
 	}
 }
 
