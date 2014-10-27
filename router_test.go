@@ -196,7 +196,6 @@ func assertRouting(routePath, requestPath string, params ...string) {
 	assertRouter(router, "GET", requestPath, routePath, params...)
 }
 
-
 func assertRouter(router *Router, method string, requestPath string, body string, params ...string) {
 	res := httptest.NewRecorder()
 	req := build.Request().Path(requestPath).Method(method).Request

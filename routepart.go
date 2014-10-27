@@ -1,14 +1,14 @@
 package router
 
 type RoutePart struct {
-	params  []string
-	handler Handler
-	parts   map[string]*RoutePart
+	params   []string
+	handler  Handler
+	parts    map[string]*RoutePart
 	prefixes []*Prefix
 }
 
 type Prefix struct {
-	value string
+	value   string
 	handler Handler
 }
 

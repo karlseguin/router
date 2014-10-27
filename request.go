@@ -1,12 +1,13 @@
 package router
 
 import (
+	"github.com/karlseguin/params"
 	"net/http"
 )
 
 type Request struct {
 	*http.Request
-	params *Params
+	params params.Params
 }
 
 func (r *Request) Param(key string) string {

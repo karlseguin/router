@@ -1,6 +1,8 @@
 package router
 
 import (
+	"github.com/karlseguin/params"
+	"github.com/karlseguin/scratch"
 	"net/http"
 	"strings"
 )
@@ -10,7 +12,8 @@ type Handler func(out http.ResponseWriter, req *Request)
 type Router struct {
 	notFound  Handler
 	routes    map[string]*RoutePart
-	paramPool *ParamPool
+	paramPool *params.Pool
+	valuePool *scratch.StringsPool
 }
 
 func New(config *Configuration) *Router {
@@ -27,7 +30,8 @@ func New(config *Configuration) *Router {
 			"OPTIONS": newRoutePart(),
 		},
 	}
-	router.paramPool = NewParamPool(config.paramPoolSize, config.paramPoolCount)
+	router.paramPool = params.NewPool(config.paramPoolSize, config.paramPoolCount)
+	router.valuePool = scratch.NewStrings(config.paramPoolSize, config.paramPoolCount)
 	return router
 }
 
@@ -70,7 +74,7 @@ func (r *Router) Options(path string, handler Handler) {
 }
 
 func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
-	req := &Request{Request: httpReq, params: emptyParam}
+	req := &Request{Request: httpReq, params: params.Empty}
 	rp, ok := r.routes[req.Method]
 	if ok == false {
 		r.notFound(out, req)
@@ -92,8 +96,9 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 	if path[len(path)-1] == '/' {
 		path = path[:(len(path) - 1)]
 	}
-	params := r.paramPool.Checkout()
-	defer params.Release()
+
+	values := r.valuePool.Checkout()
+	defer values.Release()
 
 	var handler Handler
 	for {
@@ -120,7 +125,7 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 			if rp, ok = original.parts[":"]; ok == false {
 				break
 			}
-			params.AddValue(part)
+			values.Add(part)
 		}
 
 		if rp == nil || len(path) == index {
@@ -133,9 +138,11 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 		r.notFound(out, req)
 		return
 	}
-	if l := params.Len(); l > 0 {
-		for i := 0; i < l; i++ {
-			params.SetKey(rp.params[i], i)
+	if l := values.Len(); l > 0 {
+		params := r.paramPool.Checkout()
+		defer params.Release()
+		for i, value := range values.Values() {
+			params.Set(rp.params[i], value)
 		}
 		req.params = params
 	}

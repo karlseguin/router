@@ -7,7 +7,7 @@ type Configuration struct {
 
 func Configure() *Configuration {
 	return &Configuration{
-		paramPoolSize:  64,
+		paramPoolSize:  20,
 		paramPoolCount: 64,
 	}
 }
