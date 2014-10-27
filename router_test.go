@@ -40,6 +40,18 @@ func (r *RouterTests) DefaultRoute() {
 	assertRouting("/", "/")
 }
 
+func (r *RouterTests) RouteWithNoParams() {
+	var called bool
+	router := New(Configure())
+	router.Delete("/harkonen", func(out http.ResponseWriter, req *Request) {
+		Expect(req.Param("friends")).To.Equal("")
+		called = true
+	})
+	res := httptest.NewRecorder()
+	router.ServeHTTP(res, build.Request().Method("DELETE").Path("/harkonen").Request)
+	Expect(called).To.Equal(true)
+}
+
 func (r *RouterTests) RouterToAll() {
 	router := New(Configure())
 	router.All("/power", testHandler("9000"))
