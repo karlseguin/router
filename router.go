@@ -73,12 +73,21 @@ func (r *Router) Options(path string, handler Handler) {
 	r.add(r.routes["OPTIONS"], path, handler)
 }
 
-func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
-	req := &Request{Request: httpReq, params: params.Empty}
+func (r *Router) ServeHTTP(out http.ResponseWriter, hr *http.Request) {
+	params, handler, _ := r.Lookup(hr)
+	defer params.Release()
+	req := &Request{Request: hr, params: params}
+	if handler == nil {
+		handler = r.notFound
+	}
+	handler(out, req)
+}
+
+func (r *Router) Lookup(req *http.Request) (params.Params, Handler, *RoutePart) {
 	rp, ok := r.routes[req.Method]
+	var params params.Params = params.Empty
 	if ok == false {
-		r.notFound(out, req)
-		return
+		return params, nil, nil
 	}
 	path := req.URL.Path
 	if path == "" || path == "/" {
@@ -86,13 +95,12 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 		if handler == nil {
 			handler = r.notFound
 		}
-		handler(out, req)
-		return
+		return params, handler, rp
 	}
+
 	if path[0] == '/' {
 		path = path[1:]
 	}
-
 	if path[len(path)-1] == '/' {
 		path = path[:(len(path) - 1)]
 	}
@@ -135,22 +143,19 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	if rp == nil || (rp.handler == nil && handler == nil) {
-		r.notFound(out, req)
-		return
+		return params, nil, nil
 	}
+
 	if l := values.Len(); l > 0 {
-		params := r.paramPool.Checkout()
-		defer params.Release()
+		params = r.paramPool.Checkout()
 		for i, value := range values.Values() {
 			params.Set(rp.params[i], value)
 		}
-		req.params = params
 	}
 	if handler == nil {
 		handler = rp.handler
 	}
-	handler(out, req)
-
+	return params, handler, rp
 }
 
 func (r *Router) add(rp *RoutePart, path string, handler Handler) {
