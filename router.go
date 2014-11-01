@@ -8,27 +8,27 @@ import (
 )
 
 type Action struct {
-	Name string
+	Name    string
 	Handler Handler
 }
 
-var AllMethods = []string{"GET", "POST", "PUT", "DELETE", "PURGE", "PATCH", "OPTIONS", "HEAD" }
+var AllMethods = []string{"GET", "POST", "PUT", "DELETE", "PURGE", "PATCH", "OPTIONS", "HEAD"}
 
 type Handler func(out http.ResponseWriter, req *Request)
 
 type Router struct {
 	notFound  *Action
 	routes    map[string]*RoutePart
-	paramPool *params.Pool
+	ParamPool *params.Pool
 	valuePool *scratch.StringsPool
 }
 
 func New(config *Configuration) *Router {
 	router := &Router{
-		routes: make(map[string]*RoutePart),
+		routes:   make(map[string]*RoutePart),
 		notFound: &Action{"", notFoundHandler},
 	}
-	router.paramPool = params.NewPool(config.paramPoolSize, config.paramPoolCount)
+	router.ParamPool = params.NewPool(config.paramPoolSize, config.paramPoolCount)
 	router.valuePool = scratch.NewStrings(config.paramPoolSize, config.paramPoolCount)
 	return router
 }
@@ -38,7 +38,7 @@ func (r *Router) NotFound(handler Handler) {
 }
 
 func (r *Router) Add(method, path string, handler Handler) {
-	r.AddNamed(method + ":" + path, method, path, handler)
+	r.AddNamed(method+":"+path, method, path, handler)
 }
 
 func (r *Router) AddNamed(name, method, path string, handler Handler) {
@@ -171,7 +171,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 	}
 
 	if l := values.Len(); l > 0 {
-		params = r.paramPool.Checkout()
+		params = r.ParamPool.Checkout()
 		for i, value := range values.Values() {
 			params.Set(rp.params[i], value)
 		}

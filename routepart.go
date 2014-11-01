@@ -2,13 +2,13 @@ package router
 
 type RoutePart struct {
 	params   []string
-	action  *Action
+	action   *Action
 	parts    map[string]*RoutePart
 	prefixes []*Prefix
 }
 
 type Prefix struct {
-	value   string
+	value  string
 	action *Action
 }
 
