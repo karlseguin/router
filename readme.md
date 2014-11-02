@@ -31,12 +31,12 @@ func userList(out http.ResponseWriter, req *router.Request) {
 }
 
 func userShow(out http.ResponseWriter, req *router.Request) {
-  id := req.Params("id")
+  id := req.Param("id")
   ...
 }
 ```
 
-Notice that `userList` and `userShow` take a `*router.Request` and **not** a `*http.Request`. This is to expose the `Params` method.
+Notice that `userList` and `userShow` take a `*router.Request` and **not** a `*http.Request`. This is to expose the `Param` method.
 
 ## Methods
 
