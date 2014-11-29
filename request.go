@@ -11,5 +11,6 @@ type Request struct {
 }
 
 func (r *Request) Param(key string) string {
-	return r.params.Get(key)
+	value, _ := r.params.Get(key)
+	return value
 }
