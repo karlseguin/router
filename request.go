@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/karlseguin/params"
+	"gopkg.in/karlseguin/params.v1"
 	"net/http"
 )
 

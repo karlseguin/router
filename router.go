@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/karlseguin/params"
-	"github.com/karlseguin/scratch"
+	"gopkg.in/karlseguin/params.v1"
+	"gopkg.in/karlseguin/scratch.v1"
 	"net/http"
 	"strings"
 )
