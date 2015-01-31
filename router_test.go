@@ -14,7 +14,7 @@ func Test_Router(t *testing.T) {
 	Expectify(new(RouterTests), t)
 }
 
-func (r *RouterTests) NotFound() {
+func (_ RouterTests) NotFound() {
 	router := New(Configure())
 	for _, path := range []string{"", "/", "it's", "/over/9000"} {
 		res := httptest.NewRecorder()
@@ -24,7 +24,7 @@ func (r *RouterTests) NotFound() {
 	}
 }
 
-func (r *RouterTests) NotFoundWithCustomHandler() {
+func (_ RouterTests) NotFoundWithCustomHandler() {
 	router := New(Configure())
 	router.NotFound(func(out http.ResponseWriter, req *Request) {
 		out.WriteHeader(4004)
@@ -36,11 +36,11 @@ func (r *RouterTests) NotFoundWithCustomHandler() {
 	Expect(res.Body.Bytes()).To.Equal([]byte("not found"))
 }
 
-func (r *RouterTests) DefaultRoute() {
+func (_ RouterTests) DefaultRoute() {
 	assertRouting("/", "/")
 }
 
-func (r *RouterTests) RouteWithNoParams() {
+func (_ RouterTests) RouteWithNoParams() {
 	var called bool
 	router := New(Configure())
 	router.Delete("/harkonen", func(out http.ResponseWriter, req *Request) {
@@ -52,7 +52,7 @@ func (r *RouterTests) RouteWithNoParams() {
 	Expect(called).To.Equal(true)
 }
 
-func (r *RouterTests) RouterToAll() {
+func (_ RouterTests) RouterToAll() {
 	router := New(Configure())
 	router.All("/power", testHandler("9000"))
 	assertRouter(router, "GET", "/power", "9000")
@@ -65,7 +65,7 @@ func (r *RouterTests) RouterToAll() {
 	assertRouter(router, "OPTIONS", "/power", "9000")
 }
 
-func (r *RouterTests) RouterToAllOverwrite() {
+func (_ RouterTests) RouterToAllOverwrite() {
 	router := New(Configure())
 	router.Get("/power", testHandler("get-9000"))
 	router.All("/power", testHandler("9000"))
@@ -79,7 +79,7 @@ func (r *RouterTests) RouterToAllOverwrite() {
 	assertRouter(router, "OPTIONS", "/power", "9000")
 }
 
-func (r *RouterTests) SimpleRoute() {
+func (_ RouterTests) SimpleRoute() {
 	assertRouting("/users", "/users")
 	assertRouting("/users", "/users/")
 	assertRouting("/users/", "/users")
@@ -88,27 +88,27 @@ func (r *RouterTests) SimpleRoute() {
 	assertNotFound("/users", "GET", "/users/323")
 }
 
-func (r *RouterTests) SimpleNestedRoute() {
+func (_ RouterTests) SimpleNestedRoute() {
 	assertRouting("/users/all", "/users/all")
 	assertNotFound("/users/all", "GET", "/users")
 	assertNotFound("/users/all", "GET", "/users/")
 	assertNotFound("/users/all", "GET", "/users/323/likes")
 }
 
-func (r *RouterTests) RouteWithParameter() {
+func (_ RouterTests) RouteWithParameter() {
 	assertRouting("/users/:id", "/users/3233", "id", "3233")
 	assertRouting("/users/:other_longer", "/users/ab & cd", "other_longer", "ab & cd")
 	assertNotFound("/users/:id", "GET", "/users")
 	assertNotFound("/users/:id", "GET", "/users/")
 }
 
-func (r *RouterTests) RouteWithParameterAndNesting() {
+func (_ RouterTests) RouteWithParameterAndNesting() {
 	assertRouting("/users/:id/likes", "/users/3233/likes", "id", "3233")
 	assertNotFound("/users/:id/likes", "GET", "/users/3233")
 	assertNotFound("/users/:id/likes", "GET", "/users/3233/like")
 }
 
-func (r *RouterTests) RouteWithMultipleParameter() {
+func (_ RouterTests) RouteWithMultipleParameter() {
 	router := New(Configure())
 	router.Get("/users/:id", testHandler("route-1"))
 	router.Get("/users/:userId/likes", testHandler("route-2"))
@@ -116,7 +116,7 @@ func (r *RouterTests) RouteWithMultipleParameter() {
 	assertRouter(router, "GET", "/users/32/likes", "route-2", "userId", "32")
 }
 
-func (r *RouterTests) RouteWithComplexSetup() {
+func (_ RouterTests) RouteWithComplexSetup() {
 	router := New(Configure())
 	router.Get("/", testHandler("root"))
 	router.Get("/users", testHandler("users"))
@@ -131,7 +131,7 @@ func (r *RouterTests) RouteWithComplexSetup() {
 	assertRouter(router, "GET", "/users/aaz/likes/4910a8", "user-likes-id", "userId", "aaz", "id", "4910a8")
 }
 
-func (r *RouterTests) RoutingWithPrefix() {
+func (_ RouterTests) RoutingWithPrefix() {
 	router := New(Configure())
 	router.Put("/", testHandler("root"))
 	router.Put("/admin/*", testHandler("admin-glob-1"))

@@ -1,5 +1,5 @@
 t:
-	go test ./...
+	go test .
 
 f:
-	go fmt ./...
+	go fmt .
