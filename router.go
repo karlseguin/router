@@ -131,8 +131,8 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 
 	values := r.valuePool.Checkout()
 	defer values.Release()
-
 	var action *Action
+	var glob *RoutePart
 	for {
 		original := rp
 		index := strings.Index(path, "/")
@@ -144,7 +144,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 			if original.prefixes != nil {
 				lower := strings.ToLower(part)
 				for _, prefix := range original.prefixes {
-					if len(prefix.value) == 0 || strings.HasPrefix(lower, prefix.value) {
+					if strings.HasPrefix(lower, prefix.value) {
 						rp = original
 						action = prefix.action
 						break
@@ -163,17 +163,31 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 		if rp == nil || len(path) == index {
 			break
 		}
+		if rp.glob {
+			glob = rp
+		}
 		path = path[index+1:]
 	}
 
-	if rp == nil || (rp.action == nil && action == nil) {
+	if rp == nil {
+		if glob == nil {
+			return params, nil
+		}
+		rp = glob
+	}
+
+	if rp.action == nil && action == nil {
 		return params, nil
 	}
 
 	if l := values.Len(); l > 0 {
 		params = r.ParamPool.Checkout()
-		for i, value := range values.Values() {
-			params.Set(rp.params[i], value)
+		if lp := len(rp.params); l > lp {
+			l = lp
+		}
+		v := values.Values()
+		for i := 0; i < l; i++ {
+			params.Set(rp.params[i], v[i])
 		}
 	}
 	if action == nil {
@@ -202,8 +216,14 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 			if rp.prefixes == nil {
 				rp.prefixes = make([]*Prefix, 0, 1)
 			}
-			prefix := &Prefix{value: strings.ToLower(part[:len(part)-1]), action: action}
-			rp.prefixes = appendPrefix(rp.prefixes, prefix)
+
+			p := strings.ToLower(part[:len(part)-1])
+			if len(p) == 0 {
+				rp.glob = true
+			} else {
+				prefix := &Prefix{value: p, action: action}
+				rp.prefixes = appendPrefix(rp.prefixes, prefix)
+			}
 			break
 		}
 		if part[0] == ':' {

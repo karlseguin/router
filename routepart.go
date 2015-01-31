@@ -3,6 +3,7 @@ package router
 type RoutePart struct {
 	params   []string
 	action   *Action
+	glob     bool
 	parts    map[string]*RoutePart
 	prefixes []*Prefix
 }

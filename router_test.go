@@ -131,6 +131,25 @@ func (_ RouterTests) RouteWithComplexSetup() {
 	assertRouter(router, "GET", "/users/aaz/likes/4910a8", "user-likes-id", "userId", "aaz", "id", "4910a8")
 }
 
+func (_ RouterTests) Globbing() {
+	router := New(Configure())
+	router.Get("/users/*", testHandler("a"))
+	router.Get("/users/22", testHandler("b"))
+	router.Get("/users/:id", testHandler("c"))
+	router.Get("/users/:id/dd", testHandler("d"))
+
+	assertRouter(router, "GET", "/users", "a")
+	assertRouter(router, "GET", "/users/22/a", "a")
+	assertRouter(router, "GET", "/users/33/a", "a")
+
+	assertRouter(router, "GET", "/users/22", "b")
+	assertRouter(router, "GET", "/users/22a", "c")
+	assertRouter(router, "GET", "/users/33a", "c")
+	assertRouter(router, "GET", "/users/132", "c")
+	assertRouter(router, "GET", "/users/132/dd", "d")
+	assertRouter(router, "GET", "/users/132/aa", "a")
+}
+
 func (_ RouterTests) RoutingWithPrefix() {
 	router := New(Configure())
 	router.Put("/", testHandler("root"))
