@@ -214,14 +214,14 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 	for _, part := range parts {
 		if part[len(part)-1] == '*' {
 			if rp.prefixes == nil {
-				rp.prefixes = make([]*Prefix, 0, 1)
+				rp.prefixes = make([]Prefix, 0, 1)
 			}
 
 			p := strings.ToLower(part[:len(part)-1])
 			if len(p) == 0 {
 				rp.glob = true
 			} else {
-				prefix := &Prefix{value: p, action: action}
+				prefix := Prefix{value: p, action: action}
 				rp.prefixes = appendPrefix(rp.prefixes, prefix)
 			}
 			break
@@ -262,10 +262,10 @@ func appendParam(arr []Param, value Param) []Param {
 	return append(target, value)
 }
 
-func appendPrefix(arr []*Prefix, value *Prefix) []*Prefix {
+func appendPrefix(arr []Prefix, value Prefix) []Prefix {
 	target := arr
 	if len(arr) == cap(arr) {
-		target = make([]*Prefix, len(arr)+1)
+		target = make([]Prefix, len(arr)+1)
 		copy(target, arr)
 	}
 	return append(target, value)

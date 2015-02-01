@@ -5,7 +5,7 @@ type RoutePart struct {
 	action   *Action
 	glob     bool
 	parts    map[string]*RoutePart
-	prefixes []*Prefix
+	prefixes []Prefix
 }
 
 type Prefix struct {
