@@ -71,15 +71,16 @@ A route that ends with a '*' will do a prefix match on the incoming URL:
 router.Delete("/users/*", users)
 ```
 
-Prefix matches are evaluated before parameters are considered. Given:
-
+Parameter matches are evaluated before prefix matches are considered. Given:
 
 ```go
 router.Put("/users/:id", userShow)
 router.Put("/users/ad*", userDebug)
 ```
 
-and a request to `/users/ad123`, `userDebug` will be executed. Prefix matching is case insensitive.
+and a request to `/users/ad123`, `userShow` will be executed.  However, a reques to `/users/ad/333` will execute `userDebug`.
+
+Prefix matching is case insensitive.
 
 ## 404
 
