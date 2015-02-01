@@ -1,7 +1,7 @@
 package router
 
 type RoutePart struct {
-	params   []string
+	params   []Param
 	action   *Action
 	glob     bool
 	parts    map[string]*RoutePart
@@ -11,6 +11,11 @@ type RoutePart struct {
 type Prefix struct {
 	value  string
 	action *Action
+}
+
+type Param struct {
+	name string
+	// constraint *regexp.Regexp
 }
 
 func newRoutePart() *RoutePart {

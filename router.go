@@ -187,7 +187,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 		}
 		v := values.Values()
 		for i := 0; i < l; i++ {
-			params.Set(rp.params[i], v[i])
+			params.Set(rp.params[i].name, v[i])
 		}
 	}
 	if action == nil {
@@ -209,7 +209,7 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 		path = path[:(len(path) - 1)]
 	}
 
-	params := make([]string, 0, 1)
+	params := make([]Param, 0, 1)
 	parts := strings.Split(path, "/")
 	for _, part := range parts {
 		if part[len(part)-1] == '*' {
@@ -227,7 +227,7 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 			break
 		}
 		if part[0] == ':' {
-			params = appendOne(params, part[1:])
+			params = appendParam(params, Param{name: part[1:]})
 			part = ":"
 		}
 		sub, exists := rp.parts[part]
@@ -253,10 +253,10 @@ func notFoundHandler(out http.ResponseWriter, req *Request) {
 	out.WriteHeader(404)
 }
 
-func appendOne(arr []string, value string) []string {
+func appendParam(arr []Param, value Param) []Param {
 	target := arr
 	if len(arr) == cap(arr) {
-		target = make([]string, len(arr)+1)
+		target = make([]Param, len(arr)+1)
 		copy(target, arr)
 	}
 	return append(target, value)
