@@ -4,6 +4,7 @@ import (
 	"gopkg.in/karlseguin/params.v1"
 	"gopkg.in/karlseguin/scratch.v1"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -143,6 +144,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 		if rp, ok = rp.parts[part]; ok == false {
 			if original.prefixes != nil {
 				lower := strings.ToLower(part)
+				println(lower, len(original.prefixes))
 				for _, prefix := range original.prefixes {
 					if strings.HasPrefix(lower, prefix.value) {
 						rp = original
@@ -154,7 +156,13 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 					break
 				}
 			}
-			if rp, ok = original.parts[":"]; ok == false {
+			for _, param := range original.params {
+				if param.constraint == nil || param.constraint.MatchString(part) {
+					rp = param.route
+					break
+				}
+			}
+			if rp == nil {
 				break
 			}
 			values.Add(part)
@@ -169,7 +177,7 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 		path = path[index+1:]
 	}
 
-	if rp == nil {
+	if rp == nil || rp.action == nil {
 		if glob == nil {
 			return params, nil
 		}
@@ -182,12 +190,12 @@ func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
 
 	if l := values.Len(); l > 0 {
 		params = r.ParamPool.Checkout()
-		if lp := len(rp.params); l > lp {
+		if lp := len(rp.variables); l > lp {
 			l = lp
 		}
 		v := values.Values()
 		for i := 0; i < l; i++ {
-			params.Set(rp.params[i].name, v[i])
+			params.Set(rp.variables[i], v[i])
 		}
 	}
 	if action == nil {
@@ -209,36 +217,56 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 		path = path[:(len(path) - 1)]
 	}
 
-	params := make([]Param, 0, 1)
+	variables := make([]string, 0, 1)
 	parts := strings.Split(path, "/")
 	for _, part := range parts {
 		if part[len(part)-1] == '*' {
-			if rp.prefixes == nil {
-				rp.prefixes = make([]Prefix, 0, 1)
-			}
-
 			p := strings.ToLower(part[:len(part)-1])
 			if len(p) == 0 {
 				rp.glob = true
 			} else {
 				prefix := Prefix{value: p, action: action}
-				rp.prefixes = appendPrefix(rp.prefixes, prefix)
+				rp.prefixes = append(rp.prefixes, prefix)
 			}
 			break
 		}
+		var sub *RoutePart
 		if part[0] == ':' {
-			params = appendParam(params, Param{name: part[1:]})
-			part = ":"
-		}
-		sub, exists := rp.parts[part]
-		if exists == false {
+			var constraint *regexp.Regexp
+			variable := part[1:]
+			l := len(variable) - 1
+			if variable[l] == ')' {
+				if start := strings.IndexByte(variable, '('); start != -1 {
+					constraint = regexp.MustCompile(variable[start+1 : l])
+					variable = variable[:start]
+				}
+			}
+			variables = append(variables, variable)
+			for _, param := range rp.params {
+				if param.constraint == nil && constraint == nil {
+					sub = param.route
+					break
+				}
+				if param.constraint == nil || constraint == nil {
+					continue
+				}
+				if param.constraint.String() == constraint.String() {
+					sub = param.route
+					break
+				}
+			}
+			if sub == nil {
+				sub = newRoutePart()
+				rp.params = append(rp.params, newParam(constraint, sub))
+			}
+		} else if sub = rp.parts[part]; sub == nil {
 			sub = newRoutePart()
 			rp.parts[part] = sub
 		}
 		rp = sub
 	}
-	if len(params) > 0 {
-		rp.params = params
+	if len(variables) > 0 {
+		rp.variables = variables
 	}
 	if rp.action == nil {
 		rp.action = action
@@ -251,22 +279,4 @@ func (r Router) Routes() map[string]*RoutePart {
 
 func notFoundHandler(out http.ResponseWriter, req *Request) {
 	out.WriteHeader(404)
-}
-
-func appendParam(arr []Param, value Param) []Param {
-	target := arr
-	if len(arr) == cap(arr) {
-		target = make([]Param, len(arr)+1)
-		copy(target, arr)
-	}
-	return append(target, value)
-}
-
-func appendPrefix(arr []Prefix, value Prefix) []Prefix {
-	target := arr
-	if len(arr) == cap(arr) {
-		target = make([]Prefix, len(arr)+1)
-		copy(target, arr)
-	}
-	return append(target, value)
 }

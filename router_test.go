@@ -183,6 +183,21 @@ func (_ RouterTests) RoutingWithPrefix() {
 	assertRouterNotFound(router, "PUT", "/users/233/other")
 }
 
+func (_ RouterTests) RoutingWithConstraint() {
+	router := New(Configure())
+	router.Delete("/admin/*", testHandler("admin-glob"))
+	router.Delete("/admin/:id(^\\d+$)", testHandler("admin-int"))
+	router.Delete("/admin/:id(^[a-z]+$)", testHandler("admin-str"))
+	router.Delete("/admin/:id/xx", testHandler("admin-xx"))
+
+	assertRouter(router, "DELETE", "/admin/123abc", "admin-glob")
+	assertRouter(router, "DELETE", "/admin/99/abc", "admin-glob")
+	assertRouter(router, "DELETE", "/admin/abc/abc", "admin-glob")
+	assertRouter(router, "DELETE", "/admin/123abc/xx", "admin-xx")
+	assertRouter(router, "DELETE", "/admin/99", "admin-int")
+	assertRouter(router, "DELETE", "/admin/ss", "admin-str")
+}
+
 func Benchmark_Router(b *testing.B) {
 	router := New(Configure())
 	router.Get("/users", testHandler("get-users"))

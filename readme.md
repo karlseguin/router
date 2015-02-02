@@ -82,6 +82,17 @@ and a request to `/users/ad123`, `userShow` will be executed.  However, a reques
 
 Prefix matching is case insensitive.
 
+## Constraints
+Constraints can be placed on parameters:
+
+```go
+route.Delete("/users/:id(^\\d+$)", userDelete)
+```
+
+You'll very likely always want to bind to the start and end (^ and $), but this isn't automated in order to give you the flexibility of doing a partial match.
+
+The code will panic on an invalid regular expression.
+
 ## 404
 
 Specify a handler for not found requests:
@@ -95,7 +106,5 @@ func notFound(out http.ResponseWriter, req *router.Request) {
 }
 ```
 
-A basic not found handler is used by default.
+A default not found handler is used if none is provided
 
-# Coming Soon
-* Constraints on parameters
