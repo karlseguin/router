@@ -1,7 +1,7 @@
 package router
 
 import (
-	"gopkg.in/karlseguin/params.v1"
+	"gopkg.in/karlseguin/params.v2"
 	"gopkg.in/karlseguin/scratch.v1"
 	"net/http"
 	"regexp"
@@ -13,7 +13,10 @@ type Action struct {
 	Handler Handler
 }
 
-var AllMethods = []string{"GET", "POST", "PUT", "DELETE", "PURGE", "PATCH", "OPTIONS", "HEAD"}
+var (
+	AllMethods  = []string{"GET", "POST", "PUT", "DELETE", "PURGE", "PATCH", "OPTIONS", "HEAD"}
+	EmptyParams = params.New(0)
+)
 
 type Handler func(out http.ResponseWriter, req *Request)
 
@@ -108,9 +111,9 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, hr *http.Request) {
 	action.Handler(out, req)
 }
 
-func (r *Router) Lookup(req *http.Request) (params.Params, *Action) {
+func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
 	rp, ok := r.routes[req.Method]
-	var params params.Params = params.Empty
+	params := EmptyParams
 	if ok == false {
 		return params, nil
 	}

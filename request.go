@@ -1,13 +1,13 @@
 package router
 
 import (
-	"gopkg.in/karlseguin/params.v1"
+	"gopkg.in/karlseguin/params.v2"
 	"net/http"
 )
 
 type Request struct {
 	*http.Request
-	params params.Params
+	params *params.Params
 }
 
 func (r *Request) Param(key string) string {
