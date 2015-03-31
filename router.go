@@ -147,7 +147,6 @@ func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
 		if rp, ok = rp.parts[part]; ok == false {
 			if original.prefixes != nil {
 				lower := strings.ToLower(part)
-				println(lower, len(original.prefixes))
 				for _, prefix := range original.prefixes {
 					if strings.HasPrefix(lower, prefix.value) {
 						rp = original
@@ -159,9 +158,15 @@ func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
 					break
 				}
 			}
+			l := len(part)
 			for _, param := range original.params {
-				if param.constraint == nil || param.constraint.MatchString(part) {
+				p := part
+				if lp := len(param.postfix); lp > 0 {
+					p = part[:l-lp]
+				}
+				if param.constraint == nil || param.constraint.MatchString(p) {
 					rp = param.route
+					part = p
 					break
 				}
 			}
@@ -236,7 +241,12 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 		var sub *RoutePart
 		if part[0] == ':' {
 			var constraint *regexp.Regexp
+			var postfix string
 			variable := part[1:]
+			if i := strings.IndexByte(variable, ':'); i != -1 {
+				postfix = variable[i+1:]
+				variable = variable[:i]
+			}
 			l := len(variable) - 1
 			if variable[l] == ')' {
 				if start := strings.IndexByte(variable, '('); start != -1 {
@@ -246,21 +256,22 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 			}
 			variables = append(variables, variable)
 			for _, param := range rp.params {
-				if param.constraint == nil && constraint == nil {
+				if param.constraint == nil && constraint == nil && len(param.postfix) == 0 && len(postfix) == 0 {
 					sub = param.route
 					break
 				}
-				if param.constraint == nil || constraint == nil {
+				if param.constraint == nil || constraint == nil || len(param.postfix) != 0 || len(postfix) != 0 {
 					continue
 				}
-				if param.constraint.String() == constraint.String() {
+				if param.constraint.String() == constraint.String() && param.postfix == postfix {
 					sub = param.route
 					break
 				}
 			}
+
 			if sub == nil {
 				sub = newRoutePart()
-				rp.params = append(rp.params, newParam(constraint, sub))
+				rp.params = append(rp.params, newParam(constraint, sub, postfix))
 			}
 		} else if sub = rp.parts[part]; sub == nil {
 			sub = newRoutePart()

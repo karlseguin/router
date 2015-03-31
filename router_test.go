@@ -108,6 +108,11 @@ func (_ RouterTests) RouteWithParameterAndNesting() {
 	assertNotFound("/users/:id/likes", "GET", "/users/3233/like")
 }
 
+func (_ RouterTests) RouteWithParameterAndExtension() {
+	assertRouting("/users/:id:.json", "/users/3233.json", "id", "3233")
+	assertRouting("/users/:id:.json/:other", "/users/3233.json/xx", "id", "3233", "other", "xx")
+}
+
 func (_ RouterTests) RouteWithMultipleParameter() {
 	router := New(Configure())
 	router.Get("/users/:id", testHandler("route-1"))

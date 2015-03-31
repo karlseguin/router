@@ -22,12 +22,14 @@ func newRoutePart() *RoutePart {
 type Param struct {
 	constraint *regexp.Regexp
 	route      *RoutePart
+	postfix    string
 }
 
-func newParam(constraint *regexp.Regexp, route *RoutePart) Param {
+func newParam(constraint *regexp.Regexp, route *RoutePart, postfix string) Param {
 	return Param{
-		constraint: constraint,
 		route:      route,
+		postfix:    postfix,
+		constraint: constraint,
 	}
 }
 

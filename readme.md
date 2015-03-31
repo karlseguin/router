@@ -78,7 +78,8 @@ router.Put("/users/:id", userShow)
 router.Put("/users/ad*", userDebug)
 ```
 
-and a request to `/users/ad123`, `userShow` will be executed.  However, a reques to `/users/ad/333` will execute `userDebug`.
+and a request to `/users/ad123`, `userShow` will be executed.  However, a request
+to `/users/ad/333` will execute `userDebug`.
 
 Prefix matching is case insensitive.
 
@@ -92,6 +93,13 @@ route.Delete("/users/:id(^\\d+$)", userDelete)
 You'll very likely always want to bind to the start and end (^ and $), but this isn't automated in order to give you the flexibility of doing a partial match.
 
 The code will panic on an invalid regular expression.
+
+## Postfixes
+A parameter can be followed by a postfix value, such as an extension:
+
+```go
+route.Get("/users/:id:.json", showUser)
+```
 
 ## 404
 
@@ -107,4 +115,3 @@ func notFound(out http.ResponseWriter, req *router.Request) {
 ```
 
 A default not found handler is used if none is provided
-
