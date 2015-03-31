@@ -109,7 +109,8 @@ func (_ RouterTests) RouteWithParameterAndNesting() {
 }
 
 func (_ RouterTests) RouteWithParameterAndExtension() {
-	assertRouting("/users/:id:.json", "/users/3233.json", "id", "3233")
+	assertNotFound("/v1/users/:id:.vid", "GET", "/v1/users/3233.json")
+	assertRouting("/v1/users/:id:.json", "/v1/users/3233.json", "id", "3233")
 	assertRouting("/users/:id:.json/:other", "/users/3233.json/xx", "id", "3233", "other", "xx")
 }
 

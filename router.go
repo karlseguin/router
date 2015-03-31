@@ -161,7 +161,10 @@ func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
 			l := len(part)
 			for _, param := range original.params {
 				p := part
-				if lp := len(param.postfix); lp > 0 {
+				if lp := len(param.suffix); lp > 0 {
+					if strings.HasSuffix(p, param.suffix) == false {
+						continue
+					}
 					p = part[:l-lp]
 				}
 				if param.constraint == nil || param.constraint.MatchString(p) {
@@ -241,10 +244,10 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 		var sub *RoutePart
 		if part[0] == ':' {
 			var constraint *regexp.Regexp
-			var postfix string
+			var suffix string
 			variable := part[1:]
 			if i := strings.IndexByte(variable, ':'); i != -1 {
-				postfix = variable[i+1:]
+				suffix = variable[i+1:]
 				variable = variable[:i]
 			}
 			l := len(variable) - 1
@@ -256,14 +259,14 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 			}
 			variables = append(variables, variable)
 			for _, param := range rp.params {
-				if param.constraint == nil && constraint == nil && len(param.postfix) == 0 && len(postfix) == 0 {
+				if param.constraint == nil && constraint == nil && len(param.suffix) == 0 && len(suffix) == 0 {
 					sub = param.route
 					break
 				}
-				if param.constraint == nil || constraint == nil || len(param.postfix) != 0 || len(postfix) != 0 {
+				if param.constraint == nil || constraint == nil || len(param.suffix) != 0 || len(suffix) != 0 {
 					continue
 				}
-				if param.constraint.String() == constraint.String() && param.postfix == postfix {
+				if param.constraint.String() == constraint.String() && param.suffix == suffix {
 					sub = param.route
 					break
 				}
@@ -271,7 +274,7 @@ func (r *Router) add(rp *RoutePart, path string, action *Action) {
 
 			if sub == nil {
 				sub = newRoutePart()
-				rp.params = append(rp.params, newParam(constraint, sub, postfix))
+				rp.params = append(rp.params, newParam(constraint, sub, suffix))
 			}
 		} else if sub = rp.parts[part]; sub == nil {
 			sub = newRoutePart()
