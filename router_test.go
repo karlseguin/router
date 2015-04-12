@@ -88,6 +88,16 @@ func (_ RouterTests) SimpleRoute() {
 	assertNotFound("/users", "GET", "/users/323")
 }
 
+func (_ RouterTests) ExposesQueryParameters() {
+	id := ""
+	router := New(Configure())
+	router.Get("/v1/users", func(out http.ResponseWriter, req *Request) {
+		id = req.Query("id")
+	})
+	router.ServeHTTP(httptest.NewRecorder(), build.Request().URLString("/v1/users?id=goku").Request)
+	Expect(id).To.Equal("goku")
+}
+
 func (_ RouterTests) SimpleNestedRoute() {
 	assertRouting("/users/all", "/users/all")
 	assertNotFound("/users/all", "GET", "/users")
