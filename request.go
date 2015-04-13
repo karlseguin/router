@@ -20,3 +20,11 @@ func (r *Request) Param(key string) string {
 func (r *Request) Query(key string) string {
 	return r.query.Get(key)
 }
+
+func NewRequest(req *http.Request, params *params.Params) *Request {
+	return &Request{
+		Request: req,
+		params:  params,
+		query:   req.URL.Query(),
+	}
+}

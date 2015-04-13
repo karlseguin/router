@@ -103,11 +103,8 @@ func (r *Router) Options(path string, handler Handler) {
 func (r *Router) ServeHTTP(out http.ResponseWriter, hr *http.Request) {
 	params, action := r.Lookup(hr)
 	defer params.Release()
-	req := &Request{
-		Request: hr,
-		params:  params,
-		query:   hr.URL.Query(),
-	}
+	req := NewRequest(hr, params)
+
 	if action == nil || action.Handler == nil {
 		r.notFound.Handler(out, req)
 		return
