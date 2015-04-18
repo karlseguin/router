@@ -21,6 +21,10 @@ func (r *Request) Query(key string) string {
 	return r.query.Get(key)
 }
 
+func (r *Request) MQuery(key string) []string {
+	return r.query[key]
+}
+
 func NewRequest(req *http.Request, params *params.Params) *Request {
 	return &Request{
 		Request: req,
