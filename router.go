@@ -1,11 +1,12 @@
 package router
 
 import (
-	"gopkg.in/karlseguin/params.v2"
-	"gopkg.in/karlseguin/scratch.v1"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"gopkg.in/karlseguin/params.v2"
+	"gopkg.in/karlseguin/scratch.v1"
 )
 
 type Action struct {
@@ -175,6 +176,9 @@ func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
 				}
 			}
 			if rp == nil {
+				if original.glob {
+					glob = original
+				}
 				break
 			}
 			values.Add(part)

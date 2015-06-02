@@ -1,11 +1,12 @@
 package router
 
 import (
-	. "github.com/karlseguin/expect"
-	"github.com/karlseguin/expect/build"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	. "github.com/karlseguin/expect"
+	"github.com/karlseguin/expect/build"
 )
 
 type RouterTests struct{}
@@ -163,6 +164,22 @@ func (_ RouterTests) Globbing() {
 	assertRouter(router, "GET", "/users/33a", "c")
 	assertRouter(router, "GET", "/users/132", "c")
 	assertRouter(router, "GET", "/users/132/dd", "d")
+	assertRouter(router, "GET", "/users/132/aa", "a")
+}
+
+func (_ RouterTests) RootGlobbing() {
+	router := New(Configure())
+	router.Get("/*", testHandler("a"))
+
+	assertRouter(router, "GET", "/users", "a")
+	assertRouter(router, "GET", "/users/22/a", "a")
+	assertRouter(router, "GET", "/users/33/a", "a")
+
+	assertRouter(router, "GET", "/users/22", "a")
+	assertRouter(router, "GET", "/users/22a", "a")
+	assertRouter(router, "GET", "/users/33a", "a")
+	assertRouter(router, "GET", "/users/132", "a")
+	assertRouter(router, "GET", "/users/132/dd", "a")
 	assertRouter(router, "GET", "/users/132/aa", "a")
 }
 
