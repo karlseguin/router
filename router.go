@@ -114,12 +114,15 @@ func (r *Router) ServeHTTP(out http.ResponseWriter, hr *http.Request) {
 }
 
 func (r *Router) Lookup(req *http.Request) (*params.Params, *Action) {
-	rp, ok := r.routes[req.Method]
+	return r.LookupByParts(req.Method, req.URL.Path)
+}
+
+func (r *Router) LookupByParts(method string, path string) (*params.Params, *Action) {
+	rp, ok := r.routes[method]
 	params := EmptyParams
 	if ok == false {
 		return params, nil
 	}
-	path := req.URL.Path
 	if path == "" || path == "/" {
 		action := rp.action
 		if action == nil {
