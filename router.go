@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"gopkg.in/karlseguin/params.v2"
-	"gopkg.in/karlseguin/scratch.v1"
+	"gopkg.in/karlseguin/scratch.v2"
 )
 
 type Action struct {
